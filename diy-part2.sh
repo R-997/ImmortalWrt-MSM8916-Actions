@@ -114,4 +114,17 @@ else
 	echo "::warning::firewall4 patch verify: failed"
 fi
 
+# ===== 修复 rust 1.96 bootstrap 下载 CI llvm 404 =====
+RUST_MK="feeds/packages/lang/rust/Makefile"
+if [ -f "$RUST_MK" ]; then
+    grep -q 'llvm.download-ci-llvm=false' "$RUST_MK" || \
+        sed -i '/--dist-compression-formats=gz/a\	--set=llvm.download-ci-llvm=false \\' "$RUST_MK"
+    if ! grep -A3 'x.py' "$RUST_MK" | grep -q 'download-ci-llvm'; then
+        sed -i 's#$dist build-manifest rustc$#--set=llvm.download-ci-llvm=false \\\n\t\t\1#' "$RUST_MK"
+    fi
+    echo "===== rust Makefile 修复后 ====="
+    grep -nE 'download-ci-llvm|x.py|dist build-manifest' "$RUST_MK"
+else
+    echo "::warning::未找到 $RUST_MK，请检查 feed 路径"
+fi
 
